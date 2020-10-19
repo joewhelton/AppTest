@@ -1,7 +1,7 @@
 const { admin, db } = require('../util/admin');
 const config = require('../util/config');
-
 const firebase = require('firebase');
+const cors = require('cors')({origin: true});
 
 firebase.initializeApp(config);
 
@@ -9,27 +9,30 @@ const { validateLoginData, validateSignUpData } = require('../util/validators');
 
 // Login
 exports.loginUser = (request, response) => {
-    const user = {
-        email: request.body.email,
-        password: request.body.password
-    }
+    return cors(request, response, () => {
+        response.set('Access-Control-Allow-Origin', '*');
+        const user = {
+            email: request.body.email,
+            password: request.body.password
+        }
 
-    const { valid, errors } = validateLoginData(user);
-    if (!valid) return response.status(400).json(errors);
+        const {valid, errors} = validateLoginData(user);
+        if (!valid) return response.status(400).json(errors);
 
-    firebase
-        .auth()
-        .signInWithEmailAndPassword(user.email, user.password)
-        .then((data) => {
-            return data.user.getIdToken();
-        })
-        .then((token) => {
-            return response.json({ token });
-        })
-        .catch((error) => {
-            console.error(error);
-            return response.status(403).json({ general: 'wrong credentials, please try again'});
-        })
+        firebase
+            .auth()
+            .signInWithEmailAndPassword(user.email, user.password)
+            .then((data) => {
+                return data.user.getIdToken();
+            })
+            .then((token) => {
+                return response.json({token});
+            })
+            .catch((error) => {
+                console.error(error);
+                return response.status(403).json({general: 'wrong credentials, please try again'});
+            })
+    });
 };
 
 //Register
@@ -162,20 +165,24 @@ exports.uploadProfilePhoto = (request, response) => {
 
 //Get Details
 exports.getUserDetail = (request, response) => {
-    let userData = {};
-    db
-        .doc(`/users/${request.user.username}`)
-        .get()
-        .then((doc) => {
-            if (doc.exists) {
-                userData.userCredentials = doc.data();
-                return response.json(userData);
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            return response.status(500).json({ error: error.code });
-        });
+    return cors(request, response, () => {
+        response.set('Access-Control-Allow-Origin', '*');
+        let userData = {};
+        db
+            .doc(`/users/${request.user.username}`)
+            .get()
+            .then((doc) => {
+                // eslint-disable-next-line promise/always-return
+                if (doc.exists) {
+                    userData.userCredentials = doc.data();
+                    return response.json(userData);
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                return response.status(500).json({error: error.code});
+            });
+    });
 }
 
 //Edit Details
@@ -183,7 +190,7 @@ exports.updateUserDetails = (request, response) => {
     let document = db.collection('users').doc(`${request.user.username}`);
     document.update(request.body)
         .then(()=> {
-            response.json({message: 'Updated successfully'});
+            return response.json({message: 'Updated successfully'});
         })
         .catch((error) => {
             console.error(error);

@@ -82,7 +82,7 @@ exports.deleteTodo = (request, response) => {
             return document.delete();
         })
         .then(() => {
-            response.json({ message: 'Delete successful' });
+            return response.json({ message: 'Delete successful' });
         })
         .catch((err) => {
             console.error(err);
@@ -92,12 +92,12 @@ exports.deleteTodo = (request, response) => {
 
 exports.editTodo = ( request, response ) => {
     if(request.body.todoId || request.body.createdAt){
-        response.status(403).json({message: 'Not allowed to edit'});
+        return response.status(403).json({message: 'Not allowed to edit'});
     }
     let document = db.collection('todos').doc(`${request.params.todoId}`);
     document.update(request.body)
         .then(()=> {
-            response.json({message: 'Updated successfully'});
+            return response.json({message: 'Updated successfully'});
         })
         .catch((err) => {
             console.error(err);
